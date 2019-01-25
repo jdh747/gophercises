@@ -9,23 +9,24 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
 	// Initialise flags
 	csvFilename := flag.String("csv", "problems.csv", "a csv file in the format of 'question,answer'")
-	// limit := flag.Int("limit", 30, "the limit for the quiz in seconds")
+	timeLimit := flag.Int("limit", 30, "the limit for the quiz in seconds")
 	flag.Parse()
 
 	problems := parseProblems(csvFilename)
-	runQuiz(problems)
+	runQuiz(problems, *timeLimit)
 }
 
-func parseProblems(csvFilename *string) []problem {
+func parseProblems(csvFilename *string) []problemT {
 	file, _ := os.Open(*csvFilename)
 	csvReader := csv.NewReader(file)
 
-	var problems []problem
+	var problems []problemT
 
 	for {
 		line, error := csvReader.Read()
@@ -34,7 +35,7 @@ func parseProblems(csvFilename *string) []problem {
 		} else if error != nil {
 			log.Fatal(error)
 		}
-		problems = append(problems, problem{
+		problems = append(problems, problemT{
 			strings.TrimSpace(line[0]),
 			strings.TrimSpace(line[1]),
 		})
@@ -42,20 +43,32 @@ func parseProblems(csvFilename *string) []problem {
 	return problems
 }
 
-func runQuiz(problems []problem) {
+func runQuiz(problems []problemT, timeLimit int) {
 	correct := 0
 	inputReader := bufio.NewReader(os.Stdin)
-	for i, prob := range problems {
-		fmt.Printf("Question %d) %s: ", i+1, prob.question)
-		result, _ := inputReader.ReadString('\n')
-		if strings.TrimSpace(result) == prob.answer {
-			correct++
+	resultChan := make(chan string, 1)
+	for i, problem := range problems {
+		fmt.Printf("Question %d) %s: ", i+1, problem.question)
+
+		go func() {
+			result, _ := inputReader.ReadString('\n')
+			resultChan <- result
+		}()
+
+		select {
+		case result := <-resultChan:
+			if strings.TrimSpace(result) == problem.answer {
+				correct++
+			}
+		case <-time.After(time.Duration(timeLimit) * time.Second):
+			println("*Timeout*")
 		}
+
 	}
 	fmt.Printf("Complete. %d/%d correct\n", correct, len(problems))
 }
 
-type problem struct {
+type problemT struct {
 	question string
 	answer   string
 }
