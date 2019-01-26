@@ -39,10 +39,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	dbHandler, err := urlshort.DbHandler(yamlHandler)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	// Serve handlers
 	port := ":8082"
 	fmt.Println("Starting the server on ", port)
-	if err = http.ListenAndServe(port, yamlHandler); err != nil {
+	if err = http.ListenAndServe(port, dbHandler); err != nil {
 		log.Fatal(err)
 	}
 }

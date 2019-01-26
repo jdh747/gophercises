@@ -1,7 +1,11 @@
 package urlshort
 
 import (
+	"database/sql"
+	"log"
 	"net/http"
+
+	_ "github.com/lib/pq" // This import registers pq as a driver for postgres SQL databases
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -11,9 +15,31 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if redirect, ok := pathsToUrls[r.URL.RequestURI()]; ok {
 			http.Redirect(w, r, redirect, http.StatusMovedPermanently)
+		} else {
+			fallback.ServeHTTP(w, r)
 		}
-		fallback.ServeHTTP(w, r)
 	})
+}
+
+// DbHandler ...
+func DbHandler(fallback http.Handler) (http.HandlerFunc, error) {
+	connStr := "user=golang dbname=golang_test_db sslmode=disable"
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return nil, err
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var redirect string
+		err = db.QueryRow("SELECT url FROM url_shortner WHERE path = $1", r.URL.RequestURI()).Scan(&redirect)
+		if err == sql.ErrNoRows {
+			fallback.ServeHTTP(w, r)
+		} else if err != nil {
+			log.Fatal(err)
+		} else {
+			http.Redirect(w, r, redirect, http.StatusMovedPermanently)
+		}
+	}), nil
 }
 
 // YAMLHandler ...
