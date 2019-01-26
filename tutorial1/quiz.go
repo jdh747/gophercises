@@ -23,7 +23,10 @@ func main() {
 }
 
 func parseProblems(csvFilename *string) []problemT {
-	file, _ := os.Open(*csvFilename)
+	file, error := os.Open(*csvFilename)
+	if error != nil {
+		log.Fatal(error)
+	}
 	csvReader := csv.NewReader(file)
 
 	var problems []problemT
