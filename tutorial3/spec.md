@@ -65,6 +65,6 @@ As a bonus exercises you can also:
 ## TODO
 
 - [x] Unmarshal json file with encoding/json package
-- [ ] Display story with html/template package
-- [ ] Take user input with http.Handler
+- [x] Display story with html/template package
+- [x] Take user input with http.Handler
 - [ ] Clean up and package application
