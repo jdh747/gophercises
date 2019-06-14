@@ -3,20 +3,27 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"golang.org/x/net/html"
 )
 
 func main() {
 	//TODO: pull file from cmdline arg
-	file, err := os.Open("tests/ex1.html")
+	file, err := os.Open("tests/ex4.html")
 	check("Error opening file", err)
 
 	node, err := html.Parse(file)
 	check("Error parsing HTML", err)
 
 	ParseTree(node, "a", func(aTagNode *html.Node) {
-		fmt.Printf("Link{\n\tHref: '%v',\n\tText: '%v'\n}", aTagNode.Attr[0].Val, aTagNode.FirstChild.Data)
+		for _, tag := range aTagNode.Attr {
+			if tag.Key == "href" {
+				fmt.Printf("Link {\n\tHref: '%v',\n\tText: '%v'\n}\n",
+					tag.Val,
+					strings.TrimSpace(aTagNode.FirstChild.Data))
+			}
+		}
 	})
 }
 
@@ -26,9 +33,6 @@ func ParseTree(node *html.Node, nodeType string, printFunc func(*html.Node)) {
 		printFunc(node)
 	}
 
-	// Recurse through all children
-	// TODO: could each child be handled by a goroutine?
-	// TODO: might need a switch for dealing with various types of nodes
 	for child := node.FirstChild; child != nil; child = child.NextSibling {
 		ParseTree(child, nodeType, printFunc)
 	}
