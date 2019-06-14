@@ -72,3 +72,8 @@ The only bonuses here are to improve your tests and edge-case coverage.
 - [ ] Write basic package interface
 - [ ] Write unit tests against ex1-4
 - [ ] Complete package and pass unit tests
+
+## Side Notes
+
+- Node.Attr[0].key = "href" | Node.Attr[0].Val = "/some-link" | Node.Data = "a"
+- if ^, Node.FirstChild.Data = "inner a tag text"
