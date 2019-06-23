@@ -17,8 +17,12 @@ package cmd
 
 import (
 	"fmt"
-
+	"os"
+	"encoding/binary"
+	"encoding/gob"
+	"bytes"
 	"github.com/spf13/cobra"
+	bolt "go.etcd.io/bbolt"
 )
 
 // addCmd represents the add command
@@ -29,6 +33,28 @@ var addCmd = &cobra.Command{
 		task add this is a new task`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("add called")
+
+		db, err := bolt.Open("task.db", os.ModeAppend, nil)
+
+		if err != nil {
+			panic(err)
+		}
+
+		defer db.Close()
+
+		db.Update(func(tx *bolt.Tx) error {
+			bucket, err := tx.CreateBucketIfNotExists([]byte("Tasks"))
+			
+			if err != nil {
+				return fmt.Errorf("Create bucket: %s", err)
+			}
+			
+			buf := &bytes.Buffer{}
+			gob.NewEncoder(buf).Encode(args)
+
+			id, _ := bucket.NextSequence()
+			return bucket.Put(itob(int(id)), buf.Bytes())
+		})
 	},
 }
 
@@ -44,4 +70,10 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func itob(v int) []byte {
+    b := make([]byte, 8)
+    binary.BigEndian.PutUint64(b, uint64(v))
+    return b
 }
